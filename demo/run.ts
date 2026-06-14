@@ -60,8 +60,10 @@ async function main(): Promise<void> {
     }
   };
 
-  ui.banner("一个常驻工作群的管家：捕获承诺、盯进度、该出声才出声。下面是它的一周。");
-  ui.note("  它的分寸（src/adapters/llm/prompts/persona.ts）：");
+  ui.banner(
+    "团队答应的事总没下文，你又不想天天追、更不想给团队装个监工。它替你盯：该记的记、该催的催，平时不出声——下面是它陪一个小团队的一周。",
+  );
+  ui.note("  它的行事分寸：");
   for (const line of BUTLER_PERSONA.split("\n").slice(1)) {
     if (line.trim().length > 0) ui.note(`    ${line.trim()}`);
   }
@@ -86,7 +88,11 @@ async function main(): Promise<void> {
   await store.commitments.put(payback);
 
   // ———————————————————————————————————————————————————————
-  ui.scene(1, "捕获，而不是记账", "从自然对话里听出承诺；确认一次就跟上，不刷屏；闲聊不理。");
+  ui.scene(
+    1,
+    "捕获，而不是记账",
+    "痛点：嘴上答应的事没人记、群一刷就埋了。它从对话里自动记下、确认一句就跟上——没人需要去填表。",
+  );
   // ———————————————————————————————————————————————————————
   at(beijing(2026, 6, 16, 10));
   await say(WANG, "@李四 登录鉴权这块你来跟一下？", "不抢话：这是派活，等李四自己认领。");
@@ -101,34 +107,38 @@ async function main(): Promise<void> {
   ui.aside(`已建档：「${login.title}」· 截止 ${fmt(login.dueAt)} · 状态 ${login.status}`);
 
   // ———————————————————————————————————————————————————————
-  ui.scene(2, "挣来的沉默", "第二天自动巡检：进度在动、离 due 还远 → 一个字都不说。");
+  ui.scene(
+    2,
+    "挣来的沉默",
+    "痛点：管理工具整天弹通知，团队烦、你也麻木。在 track 的事它一个字不说；它一出声，就是真有事。",
+  );
   // ———————————————————————————————————————————————————————
   world.link.set(login.id, "progressed");
   await setNext(login.id, beijing(2026, 6, 17, 10));
   at(beijing(2026, 6, 17, 10));
   ui.note("  · 调度器到点，巡检李四的登录 PR……");
   await tick();
-  ui.aside("on-track 的事，管家不刷存在感——这条沉默是挣来的，不是漏看。");
+  ui.aside("你只在该管的时候被惊动；其余时间它替你扛着，不刷存在感。");
   await setNext(login.id, beijing(2026, 6, 19, 15)); // 下次巡检挪到临期那天
 
   // ———————————————————————————————————————————————————————
   ui.scene(
     3,
     "自己去核实，而不是问人",
-    "张伟的 PR #57 合并了——管家盯着证据，直接结案，没问一句『做完了吗』。",
+    "痛点：『做完没』『在做了』来回扯皮。它自己看 PR——合并了直接结案，不靠嘴汇报。",
   );
   // ———————————————————————————————————————————————————————
   world.merged.add(payback.id);
   at(beijing(2026, 6, 18, 9));
   ui.note("  · GitHub：acme/app#57 已 merge；调度器到点巡检……");
   await tick();
-  ui.aside("强证据（PR 合并）→ 模板结案，连 LLM 都不必惊动。");
+  ui.aside("进度有据可查、不是谁说了算——你看到『结了』就是真的结了。");
 
   // ———————————————————————————————————————————————————————
   ui.scene(
     4,
     "临期，才出声",
-    "周五下午，离 due 三小时、还没动静 → 一句话、带体面出口、顺手把材料备好。",
+    "痛点：等你察觉要黄，已经来不及。它赶在 due 前提醒当事人、给台阶，还把材料备好——不用你出面。",
   );
   // ———————————————————————————————————————————————————————
   world.link.set(login.id, "no_change");
@@ -136,20 +146,18 @@ async function main(): Promise<void> {
   ui.note("  · 距登录 PR 的 due 还剩 3 小时，链接没新进展；调度器巡检……");
   await tick();
   const nudge = outbox.at(-1)?.text ?? "";
-  ui.aside(
-    "不羞辱、不连环、给台阶，还顺手提出把材料备好。（默认措辞由脚本替身给出；真模型见 DEMO_LLM=real）",
-  );
+  ui.aside("提醒落到当事人头上、带台阶，还顺手把材料备好——你不用当坏人。");
 
   // 当场把这句催办喂回真实的品味 floor：管家自己说的话也要过关。
   ui.blank();
-  ui.note("  把这句催办喂回真实的品味 floor（src/core/taste/rubric.ts）自检：");
+  ui.note("  这句催办，当场用分寸规则量了一遍：");
   await checkTaste(nudge, { decision: "remind", latestVerdict: "no_change" });
 
   // ———————————————————————————————————————————————————————
   ui.scene(
     5,
     "护栏有牙：不连环、不扰人",
-    "同一天再到点 → 闭嘴（一天最多一次）；深夜到点 → 闭嘴（安静期）。",
+    "痛点：催狠了团队反感，催松了没用。一天最多一次、深夜不扰——盯得住，又不招人烦。",
   );
   // ———————————————————————————————————————————————————————
   await setNext(login.id, beijing(2026, 6, 19, 15, 30));
@@ -160,44 +168,44 @@ async function main(): Promise<void> {
   at(beijing(2026, 6, 19, 23, 30));
   ui.note("  · 当晚 23:30 又到点……");
   await tick();
-  ui.aside("同一天第二次、深夜——都闭嘴。这两道是确定性护栏，不靠 LLM 自觉。");
+  ui.aside("盯得勤但不扰人，是写死的纪律，不靠 AI 自觉——它不会半夜骚扰团队。");
 
   // ———————————————————————————————————————————————————————
-  ui.scene(6, "群里问责，私聊管人", "逾期的个人事项，私聊给本人——全量、可点链接，绝不在群里点名。");
+  ui.scene(
+    6,
+    "群里问责，私聊管人",
+    "痛点：当众点名伤人，私下又怕漏。共事的留在群里透明，个人逾期私聊本人——盯人不伤人。",
+  );
   // ———————————————————————————————————————————————————————
   at(beijing(2026, 6, 20, 9));
   ui.note("  · 周六早 9:00，给李四推送他的个人台账……");
   const sent = await pushPersonDigest(LI.id);
   if (!sent) ui.note("  （无可报事项，不打扰）");
-  ui.aside("群里问责保持透明，个人事项私聊本人——不在群里点名。");
+  ui.aside("该公开的透明、该私下的私下——团队有安全感，你有掌控感。");
 
   // ———————————————————————————————————————————————————————
   ui.scene(
     7,
     "品味是机制，不是运气",
-    "同一处境，好措辞 PASS、谄媚/羞辱措辞 FAIL——这些规则进了测试，改坏了 CI 会红。",
+    "痛点：AI 一张嘴就尬、谄媚或阴阳，砸的是你的场子。它说的每句先过分寸关——好好说话是写死的。",
   );
   // ———————————————————————————————————————————————————————
   const ctx: TasteContext = { decision: "remind", latestVerdict: "no_change" };
-  ui.note("  好措辞（管家实际说的那句）:");
+  ui.note("  它会说的话：");
   await checkTaste(nudge, ctx);
   ui.blank();
-  ui.note("  反例（换个模型/改坏 prompt 后可能冒出来的话）:");
+  ui.note("  它不会说的话（被分寸关挡下）：");
   await checkTaste("@李四 你怎么还没发登录 PR？？说过多少次了，这周必须给我搞定！！", ctx);
   ui.blank();
-  ui.note("  分寸被写成可校验的规则、进了测试；改坏了 CI 会红——不靠每次碰运气。");
-  ui.note(
-    "  这里跑的是确定性 floor；主观维度的 LLM-judge ceiling 在 npm run eval（见 docs/taste-guarantee.md）。",
-  );
+  ui.note("  好好说话被写成了规则、有测试兜底——不靠每次碰运气，也不怕换了模型就翻车。");
 
-  // —— 收尾：真实 vs 模拟，怎么跑真模型 ——
+  // —— 收尾：一句价值 + 一行可信度脚注 ——
   ui.blank();
   ui.rule();
-  ui.note("  真实、且按 app 接线在跑：捕获管线、隐形护栏、调度作业、台账组装。");
-  ui.note("  真实代码、此处当离线自检跑（尚未接进发送前拦截）：品味 floor。");
-  ui.note("  为零配置而模拟的（边缘）：LLM 三个窄决策（脚本化）、链接/GitHub 状态。");
+  ui.note("  一句话：让团队答应的事不落空，而你几乎不用管。");
   ui.note(
-    "  想看真模型措辞：先 export 好 ANTHROPIC_API_KEY（或 LLM_*），再 `DEMO_LLM=real npm run demo`。",
+    "  （演示零配置离线跑；判断逻辑全是真实代码，只有外部接口[LLM/链接/GitHub]在本机模拟。" +
+      "想看真模型 DEMO_LLM=real；细节见 demo/README.md。）",
   );
   ui.blank();
 }
@@ -205,7 +213,7 @@ async function main(): Promise<void> {
 /** 跑真实的品味 floor 并把结果打印出来。 */
 async function checkTaste(message: string, ctx: TasteContext): Promise<void> {
   const v = await fullTasteCheck(message, ctx, "演示自检", null);
-  ui.taste(v.passed, `「${message}」  ${ui.dim(`floor=${v.deterministic.score.toFixed(2)}`)}`);
+  ui.taste(v.passed, `「${message}」`);
   for (const x of v.violations) ui.violation(x.severity, x.dimension, x.detail);
 }
 
