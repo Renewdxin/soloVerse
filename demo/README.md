@@ -1,12 +1,15 @@
-# Demo — the butler, in one terminal run
+# Demo — the butler, live
 
-```bash
-npm run demo
-```
+Two ways to see it, both zero-setup (no API key, no Postgres, no Feishu) and both driving
+the **real** core pipeline:
 
-Zero setup: no API key, no Postgres, no Feishu/Discord. It plays a one-week timeline
-of a work group through the **real** core pipeline and prints what the butler does — and,
-just as important, when it chooses to stay quiet.
+- **Web** — `npm run demo:web` → an interactive 收发站 (send/receive station) you can record for the demo video.
+- **Terminal** — `npm run demo` → the same one-week story as a printed transcript.
+
+![web 收发站 — group chat on the left, a live ledger + time fast-forward on the right](../docs/assets/web-sandbox.png)
+
+It plays a one-week timeline of a work group and shows what the butler does — and, just as
+important, when it chooses to stay quiet.
 
 ## What you'll see (7 scenes)
 
@@ -56,4 +59,5 @@ The three narrow decisions then run against the real model; the verifiers stay s
 demo/run.ts       the scripted story (scenes + narration)
 demo/harness.ts   FakeLlm, fake verifiers, DemoClock, and the real-brain wiring
 demo/ui.ts        terminal formatting (set NO_COLOR=1 for plain text)
+demo/web/         the web 收发站 — server.ts (Node http) + index.html/app.js/app.css
 ```
