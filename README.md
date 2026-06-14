@@ -4,6 +4,8 @@
 
 核心闭环：**承诺识别 → 证据查证 → 干预决策 → 跨平台触达**。
 
+> 想先看效果？`npm run demo` —— 零配置，在终端里跑一周的工作群时间线（捕获 / 挣来的沉默 / 自动结案 / 临期分寸 / 私聊台账 / 品味自检），全程跑真实 core 代码。见 [demo/README.md](./demo/README.md)。
+
 - MVP：单用户自部署 · TypeScript/Node · 飞书/Discord(channel) + GitHub/link/manual(verifier)，承诺用「抽取 + 确认」捕获。
 - 飞书 / Discord / GitHub 只是第一批 adapter，不是产品边界。
 

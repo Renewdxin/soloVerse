@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "tsx watch src/app/main.ts",
     "start": "tsx src/app/main.ts",
+    "demo": "tsx demo/run.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "check": "biome check ."
