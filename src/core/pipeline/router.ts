@@ -13,8 +13,23 @@ export interface RouterDeps {
   extractor: Extractor;
   groupPolicy: GroupPolicy;
   clock: Clock;
+  /** 群内确认消息里把 due 渲染成本地时间用（而不是甩一串 UTC ISO 给人看）。 */
+  timezone: string;
   send: (out: OutboundMessage) => Promise<{ dispatchRef: string }>;
   newId: () => string;
+}
+
+/** 把截止时间渲染成本地友好格式，如「06/19周五 18:00」。 */
+function formatDue(due: Date, timezone: string): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: timezone,
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(due);
 }
 
 /**
@@ -51,7 +66,8 @@ export class Router {
     if (proposed !== null) {
       await this.deps.store.commitments.put(proposed);
       await this.recordInbound(msg, proposed.id);
-      const due = proposed.dueAt !== null ? ` · 截止 ${proposed.dueAt.toISOString()}` : "";
+      const due =
+        proposed.dueAt !== null ? ` · 截止 ${formatDue(proposed.dueAt, this.deps.timezone)}` : "";
       try {
         await this.sendAndRecord(
           {

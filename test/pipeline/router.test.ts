@@ -59,6 +59,7 @@ function setup(
     extractor,
     groupPolicy,
     clock,
+    timezone: "Asia/Shanghai",
     newId,
     send:
       sendImpl ??

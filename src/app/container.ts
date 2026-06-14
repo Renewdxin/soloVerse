@@ -128,7 +128,15 @@ export function buildContainer(config: Config): Container {
       digest,
     });
   };
-  const router = new Router({ store, extractor, groupPolicy, clock, send, newId });
+  const router = new Router({
+    store,
+    extractor,
+    groupPolicy,
+    clock,
+    timezone: config.timezone,
+    send,
+    newId,
+  });
   const operatorConsole = new OperatorConsole({
     store,
     groupPolicy,
