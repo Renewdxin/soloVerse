@@ -66,8 +66,8 @@ async function freshSession(): Promise<Session> {
 let session: Session = await freshSession();
 
 // —— 状态快照：网页要画的一切都从真实 store 里读出来 ——
-async function snapshot(): Promise<unknown> {
-  const { store, clock, world } = session.brain;
+async function snapshot(sess: Session): Promise<unknown> {
+  const { store, clock, world } = sess.brain;
   const people = await store.people.all();
   const nameOf = (ref: string): string =>
     ref === "bot"
@@ -131,7 +131,7 @@ async function snapshot(): Promise<unknown> {
     clock: { iso: clock.now().toISOString(), label: fmtClock(clock.now()) },
     feed,
     ledger,
-    digest: session.state.lastDigest,
+    digest: sess.state.lastDigest,
   };
 }
 
@@ -196,6 +196,120 @@ async function handleTaste(message: string): Promise<unknown> {
   return { passed: v.passed, violations: v.violations };
 }
 
+/**
+ * 剧场模式：在一份全新的大脑上，按确定性的 7 幕跑一遍（与终端 demo 同一条故事线），
+ * 每个节拍抓一帧快照。前端按节奏播放这些帧 = 一段可录屏的演示视频。
+ */
+async function playscript(): Promise<unknown> {
+  const sess = await freshSession();
+  const b = sess.brain;
+  const frames: Array<{ scene?: string; sub?: string; taste?: unknown; state: unknown }> = [];
+  const cap = async (
+    extra: { scene?: string; sub?: string; taste?: unknown } = {},
+  ): Promise<void> => {
+    frames.push({ ...extra, state: await snapshot(sess) });
+  };
+  const say = (ref: string, text: string): Promise<void> =>
+    b.router.handle(inbound(ref, text, b.clock.now()));
+  const setNext = async (id: string, at: Date): Promise<void> => {
+    const c = await b.store.commitments.get(id);
+    if (c !== null) await b.store.commitments.put({ ...c, nextCheckAt: at });
+  };
+  const tick = (): Promise<void> => b.commitmentJob.runDue(b.clock.now());
+
+  // 场景 1：捕获，而不是记账
+  await cap({
+    scene: "捕获，而不是记账",
+    sub: "嘴上答应的事没人记、群一刷就埋了。它从对话里自动记下、确认一句就跟上。",
+  });
+  await say("ou-wang", "@李四 登录鉴权这块你来跟一下？");
+  await cap();
+  await say(
+    "ou-li",
+    "行，我接了。登录 API 的 PR 周五前发出来：https://github.com/acme/app/pull/42",
+  );
+  await cap();
+  await say("ou-li", "对");
+  await cap();
+  await say("ou-zhang", "今晚团建去哪吃？");
+  await cap();
+  const login = (await b.store.commitments.all()).find(
+    (c) => c.assignee === "p-li" && c.status !== "proposed",
+  );
+  const loginId = login?.id ?? "";
+
+  // 场景 2：挣来的沉默
+  await cap({ scene: "挣来的沉默", sub: "在 track 的事它一个字不说；它一出声，就是真有事。" });
+  b.world.link.set(loginId, "progressed");
+  await setNext(loginId, beijing(2026, 6, 17, 10));
+  b.clock.set(beijing(2026, 6, 17, 10));
+  await tick();
+  await cap();
+  await setNext(loginId, beijing(2026, 6, 19, 15)); // 下次巡检挪到临期那天
+
+  // 场景 3：自己去核实，而不是问人
+  await cap({ scene: "自己去核实，而不是问人", sub: "它自己看 PR——合并了直接结案，不靠嘴汇报。" });
+  b.world.merged.add("c-payback");
+  b.clock.set(beijing(2026, 6, 18, 9));
+  await tick();
+  await cap();
+
+  // 场景 4：临期，才出声
+  await cap({
+    scene: "临期，才出声",
+    sub: "赶在 due 前提醒当事人、给台阶，还把材料备好——不用你出面。",
+  });
+  b.world.link.set(loginId, "no_change");
+  b.clock.set(beijing(2026, 6, 19, 15));
+  await tick();
+  await cap();
+  const nudge =
+    (await b.store.interactions.all())
+      .filter((i) => i.direction === "out" && i.commitmentId === loginId)
+      .at(-1)?.text ?? "";
+
+  // 场景 5：护栏有牙
+  await cap({
+    scene: "护栏有牙：不连环、不扰人",
+    sub: "一天最多一次、深夜不扰——盯得住，又不招人烦。",
+  });
+  await setNext(loginId, beijing(2026, 6, 19, 15, 30));
+  b.clock.set(beijing(2026, 6, 19, 15, 30));
+  await tick();
+  await cap();
+  await setNext(loginId, beijing(2026, 6, 19, 23, 30));
+  b.clock.set(beijing(2026, 6, 19, 23, 30));
+  await tick();
+  await cap();
+
+  // 场景 6：群里问责，私聊管人
+  await cap({
+    scene: "群里问责，私聊管人",
+    sub: "共事的留在群里透明，个人逾期私聊本人——盯人不伤人。",
+  });
+  b.clock.set(beijing(2026, 6, 20, 9));
+  await b.pushPersonDigest("p-li");
+  await cap();
+
+  // 场景 7：品味是机制，不是运气
+  const ctx: TasteContext = { decision: "remind", latestVerdict: "no_change" };
+  const goodMsg =
+    nudge.length > 0 ? nudge : "登录 API 的 PR 离今天的 due 不远了，需要我把相关链接翻出来吗？";
+  const badMsg = "@李四 你怎么还没发登录 PR？？说过多少次了，这周必须给我搞定！！";
+  const good = await fullTasteCheck(goodMsg, ctx, "play", null);
+  const bad = await fullTasteCheck(badMsg, ctx, "play", null);
+  await cap({
+    scene: "品味是机制，不是运气",
+    sub: "AI 一张嘴就尬、谄媚或阴阳，砸的是你的场子。它说的每句先过分寸关。",
+    taste: {
+      good: { message: goodMsg, passed: good.passed },
+      bad: { message: badMsg, passed: bad.passed, violations: bad.violations },
+    },
+  });
+
+  return { frames };
+}
+
 // —— HTTP ——
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -246,24 +360,26 @@ const server = createServer(async (req, res) => {
     const body = req.method === "POST" ? await readBody(req) : {};
     switch (url) {
       case "/api/state":
-        return json(res, await snapshot());
+        return json(res, await snapshot(session));
       case "/api/say":
         await handleSay(str(body.as), str(body.text));
-        return json(res, await snapshot());
+        return json(res, await snapshot(session));
       case "/api/advance":
         await handleAdvance(str(body.to));
-        return json(res, await snapshot());
+        return json(res, await snapshot(session));
       case "/api/world":
         await handleWorld(str(body.commitmentId), str(body.set));
-        return json(res, await snapshot());
+        return json(res, await snapshot(session));
       case "/api/digest":
         await handleDigest(str(body.personId));
-        return json(res, await snapshot());
+        return json(res, await snapshot(session));
       case "/api/taste":
         return json(res, await handleTaste(str(body.message)));
+      case "/api/play":
+        return json(res, await playscript());
       case "/api/reset":
         session = await freshSession();
-        return json(res, await snapshot());
+        return json(res, await snapshot(session));
       default:
         return json(res, { error: "unknown endpoint" }, 404);
     }
@@ -272,7 +388,12 @@ const server = createServer(async (req, res) => {
   }
 });
 
-const PORT = Number(process.env.PORT ?? 5173);
-server.listen(PORT, () => {
-  console.log(`[收发站] http://localhost:${PORT}  （Ctrl-C 退出）`);
-});
+export { freshSession, playscript, snapshot };
+
+// 直接 tsx 运行才监听；被测试 import 时不起服务。
+if (process.env.VITEST === undefined) {
+  const PORT = Number(process.env.PORT ?? 5173);
+  server.listen(PORT, () => {
+    console.log(`[收发站] http://localhost:${PORT}  （Ctrl-C 退出）`);
+  });
+}

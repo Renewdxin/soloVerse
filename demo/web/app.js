@@ -1,5 +1,6 @@
 // 收发站前端：原生 JS，无构建。只渲染状态 + 调后端，不含业务逻辑。
 const $ = (sel) => document.querySelector(sel);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const SPEAKERS = [
   { ref: "ou-wang", name: "王芳" },
@@ -7,7 +8,7 @@ const SPEAKERS = [
   { ref: "ou-zhang", name: "张伟" },
 ];
 
-// 快捷句：把"该说什么"备好，录视频/演示时一键发，保证剧情顺。
+// 快捷句：把"该说什么"备好，手动演示时一键发，保证剧情顺。
 const CHIPS = [
   { as: "ou-wang", text: "@李四 登录鉴权这块你来跟一下？", label: "王芳：派活" },
   {
@@ -46,21 +47,15 @@ async function api(path, body) {
 }
 
 function esc(s) {
-  return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 }
 
-function renderFeed(feed) {
-  const el = $("#feed");
-  el.innerHTML = feed
-    .map((r) => {
-      if (r.kind === "human")
-        return `<div class="row"><div class="who">${esc(r.name)}</div><div class="bubble">${esc(r.text)}</div></div>`;
-      if (r.kind === "bot")
-        return `<div class="row bot"><div class="who">管家</div><div class="bubble">${esc(r.text)}</div></div>`;
-      return `<div class="row silence">· 管家沉默 — ${esc(r.reason)}</div>`;
-    })
-    .join("");
-  el.scrollTop = el.scrollHeight;
+function rowHTML(r) {
+  if (r.kind === "human")
+    return `<div class="row"><div class="who">${esc(r.name)}</div><div class="bubble">${esc(r.text)}</div></div>`;
+  if (r.kind === "bot")
+    return `<div class="row bot"><div class="who">管家</div><div class="bubble">${esc(r.text)}</div></div>`;
+  return `<div class="row silence">· 管家沉默 — ${esc(r.reason)}</div>`;
 }
 
 function renderCards(ledger) {
@@ -106,27 +101,110 @@ function renderDigest(digest) {
     : "";
 }
 
+// —— 渲染：手动模式整渲，剧场模式增量追加（只让新行做入场动画）——
+let renderedCount = 0;
+let lastLedgerKey = "";
+
 function render(state) {
   if (!state?.clock) return;
   $("#clock").textContent = state.clock.label;
-  renderFeed(state.feed);
+  $("#feed").innerHTML = state.feed.map(rowHTML).join("");
+  renderedCount = state.feed.length;
+  $("#feed").scrollTop = $("#feed").scrollHeight;
   renderCards(state.ledger);
+  lastLedgerKey = JSON.stringify(state.ledger);
   renderDigest(state.digest);
 }
 
+function applyState(state) {
+  if (!state?.clock) return;
+  $("#clock").textContent = state.clock.label;
+  const feed = state.feed;
+  const el = $("#feed");
+  for (let i = renderedCount; i < feed.length; i++)
+    el.insertAdjacentHTML("beforeend", rowHTML(feed[i]));
+  renderedCount = feed.length;
+  el.scrollTop = el.scrollHeight;
+  const key = JSON.stringify(state.ledger);
+  if (key !== lastLedgerKey) {
+    renderCards(state.ledger);
+    lastLedgerKey = key;
+  }
+  renderDigest(state.digest);
+}
+
+function resetView() {
+  $("#feed").innerHTML = "";
+  $("#cards").innerHTML = "";
+  renderedCount = 0;
+  lastLedgerKey = "";
+  renderDigest(null);
+}
+
+// —— 剧场模式 ——
+let playing = false;
+
+async function sceneCard(title, sub) {
+  const o = $("#overlay");
+  o.innerHTML = `<div class="scene-card"><div class="sc-title">${esc(title)}</div><div class="sc-sub">${esc(sub ?? "")}</div></div>`;
+  o.hidden = false;
+  await sleep(20);
+  o.classList.add("show");
+  await sleep(1550);
+  o.classList.remove("show");
+  await sleep(450);
+  o.hidden = true;
+}
+
+async function tasteCloseup(t) {
+  const o = $("#overlay");
+  const viol = (t.bad.violations ?? []).map((v) => `<li>${esc(v.detail)}</li>`).join("");
+  o.innerHTML = `<div class="taste-closeup">
+    <div class="tc good"><span class="tag">✓ 会说</span><div class="msg">「${esc(t.good.message)}」</div></div>
+    <div class="tc bad"><span class="tag">✗ 不会说（被分寸关挡下）</span><div class="msg">「${esc(t.bad.message)}」</div><ul>${viol}</ul></div>
+  </div>`;
+  o.hidden = false;
+  await sleep(20);
+  o.classList.add("show");
+  await sleep(4200);
+  o.classList.remove("show");
+  await sleep(450);
+  o.hidden = true;
+}
+
+async function play() {
+  if (playing) return;
+  playing = true;
+  document.body.classList.add("playing");
+  $("#play").disabled = true;
+  try {
+    await api("/api/reset");
+    resetView();
+    const r = await api("/api/play", {});
+    for (const f of r.frames ?? []) {
+      if (f.scene) await sceneCard(f.scene, f.sub);
+      applyState(f.state);
+      if (f.taste) await tasteCloseup(f.taste);
+      await sleep(f.scene ? 250 : 1000);
+    }
+  } finally {
+    playing = false;
+    document.body.classList.remove("playing");
+    $("#play").disabled = false;
+  }
+}
+
 function initControls() {
-  // 发言人
   $("#speaker").innerHTML = SPEAKERS.map((s) => `<option value="${s.ref}">${s.name}</option>`).join(
     "",
   );
-  // 快捷句
   $("#chips").innerHTML = CHIPS.map(
     (c, i) => `<span class="chip" data-chip="${i}">${esc(c.label)}</span>`,
   ).join("");
 
   const send = async () => {
     const text = $("#text").value.trim();
-    if (!text) return;
+    if (!text || playing) return;
     $("#text").value = "";
     render(await api("/api/say", { as: $("#speaker").value, text }));
   };
@@ -134,10 +212,15 @@ function initControls() {
   $("#text").addEventListener("keydown", (e) => {
     if (e.key === "Enter") send();
   });
-  $("#reset").onclick = async () => render(await api("/api/reset", {}));
+  $("#play").onclick = play;
+  $("#reset").onclick = async () => {
+    if (playing) return;
+    render(await api("/api/reset", {}));
+  };
 
-  // 事件委托：快捷句 / 快进 / 外部世界 / digest
+  // 事件委托：快捷句 / 快进 / 外部世界 / digest（剧场播放时忽略）
   document.body.addEventListener("click", async (e) => {
+    if (playing) return;
     const t = e.target;
     if (t.dataset.chip !== undefined) {
       const c = CHIPS[+t.dataset.chip];
@@ -152,9 +235,9 @@ function initControls() {
     }
   });
   document.body.addEventListener("change", async (e) => {
-    if (e.target.dataset.link) {
+    if (playing) return;
+    if (e.target.dataset.link)
       render(await api("/api/world", { commitmentId: e.target.dataset.link, set: e.target.value }));
-    }
   });
 }
 

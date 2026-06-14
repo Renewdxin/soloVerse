@@ -15,7 +15,8 @@
       </div>
       <div class="topbar-right">
         <span class="clock" id="clock">—</span>
-        <button type="button"class="ghost" id="reset">重置</button>
+        <button type="button" class="play" id="play">▶ 剧场</button>
+        <button type="button" class="ghost" id="reset">重置</button>
       </div>
     </header>
 
@@ -29,7 +30,7 @@
           <div class="composer-row">
             <select id="speaker"></select>
             <input id="text" placeholder="替 TA 在群里说句话…" autocomplete="off" />
-            <button type="button"id="send">发送</button>
+            <button type="button" id="send">发送</button>
           </div>
         </div>
       </section>
@@ -39,9 +40,9 @@
         <div class="pane-head">
           台账
           <span class="time-controls">
-            <button type="button"class="ghost" data-adv="+1d">⏩ +1天</button>
-            <button type="button"class="ghost" data-adv="due">⏩ 到临期</button>
-            <button type="button"class="ghost" data-adv="overdue">⏩ 到逾期次日</button>
+            <button type="button" class="ghost" data-adv="+1d">⏩ +1天</button>
+            <button type="button" class="ghost" data-adv="due">⏩ 到临期</button>
+            <button type="button" class="ghost" data-adv="overdue">⏩ 到逾期次日</button>
           </span>
         </div>
         <div class="cards" id="cards"></div>
@@ -52,6 +53,8 @@
     <footer class="foot">
       判断逻辑是真实代码，模型与外部接口（LLM / 链接 / GitHub）在本机模拟。
     </footer>
+
+    <div class="overlay" id="overlay" hidden></div>
 
     <script src="/app.js"></script>
   </body>

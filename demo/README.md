@@ -3,10 +3,16 @@
 Two ways to see it, both zero-setup (no API key, no Postgres, no Feishu) and both driving
 the **real** core pipeline:
 
-- **Web** — `npm run demo:web` → an interactive 收发站 (send/receive station) you can record for the demo video.
+- **Web** — `npm run demo:web` → an interactive 收发站 (send/receive station). Hit **▶ 剧场** to auto-play the seven scenes (built for screen-recording a demo video), or drive it by hand with the quick-send chips + time fast-forward.
 - **Terminal** — `npm run demo` → the same one-week story as a printed transcript.
 
 ![web 收发站 — group chat on the left, a live ledger + time fast-forward on the right](../docs/assets/web-sandbox.png)
+
+**▶ 剧场 (theatrical mode):** scene cards introduce each beat; the finale is a taste close-up — the line the butler *will* say (PASS) next to one it *won't* (FAIL), with the floor's own reasons.
+
+| Scene card | Taste close-up (the climax) |
+|---|---|
+| ![scene card](../docs/assets/web-scene-card.png) | ![taste close-up](../docs/assets/web-taste.png) |
 
 It plays a one-week timeline of a work group and shows what the butler does — and, just as
 important, when it chooses to stay quiet.

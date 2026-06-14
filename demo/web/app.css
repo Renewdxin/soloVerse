@@ -324,17 +324,106 @@ button {
   color: var(--text);
 }
 
-/* —— 品味特写（场景 7 / 剧场模式用，后续接） —— */
-.taste {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
+/* —— 剧场模式：播放按钮 / 场景卡 / 品味特写 —— */
+.play {
+  background: var(--accent);
+  color: #08111f;
+  border-color: transparent;
+  font-weight: 600;
 }
-.taste .pass {
+.play:hover {
+  filter: brightness(1.06);
+}
+.play:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+body.playing .composer,
+body.playing .time-controls,
+body.playing .card .world {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(8, 9, 12, 0.62);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.45s var(--ease);
+  z-index: 50;
+  pointer-events: none;
+}
+.overlay.show {
+  opacity: 1;
+}
+.scene-card {
+  text-align: center;
+  transform: translateY(10px) scale(0.99);
+  transition: transform 0.5s var(--ease);
+}
+.overlay.show .scene-card {
+  transform: none;
+}
+.sc-title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.sc-sub {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 15px;
+  max-width: 640px;
+  line-height: 1.7;
+}
+.taste-closeup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(700px, 88vw);
+  transform: translateY(10px);
+  transition: transform 0.5s var(--ease);
+}
+.overlay.show .taste-closeup {
+  transform: none;
+}
+.tc {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+.tc .tag {
+  font-weight: 700;
+  font-size: 13px;
+}
+.tc.good {
+  border-color: rgba(95, 208, 160, 0.35);
+}
+.tc.good .tag {
   color: var(--good);
 }
-.taste .fail {
+.tc.bad {
+  border-color: rgba(240, 138, 138, 0.35);
+}
+.tc.bad .tag {
   color: var(--bad);
+}
+.tc .msg {
+  margin-top: 8px;
+  font-size: 16px;
+}
+.tc.bad ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .foot {
