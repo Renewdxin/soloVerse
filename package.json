@@ -10,6 +10,7 @@
     "dev": "tsx watch src/app/main.ts",
     "start": "tsx src/app/main.ts",
     "demo": "tsx demo/run.ts",
+    "demo:web": "tsx demo/web/server.ts",
     "eval": "tsx eval/runEval.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",

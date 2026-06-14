@@ -261,8 +261,17 @@ export interface Brain {
   pushPersonDigest: (personId: string) => Promise<boolean>;
 }
 
-/** 接好真实的"大脑"，群内发言/私聊都接到终端打印。 */
-export function buildBrain(start: Date): Brain {
+/**
+ * 一个大脑、两张脸：群内发言 / 私聊默认打到终端（demo/run.ts 用）；
+ * web server 传入 sink，把同样的输出收成数据去渲染网页。core 逻辑两边完全一致。
+ */
+export interface BrainSinks {
+  onGroupSend?: (out: OutboundMessage) => void;
+  onDirectSend?: (out: OutboundDirectMessage, recipientName: string) => void;
+}
+
+/** 接好真实的"大脑"；不传 sink 时群内发言/私聊打到终端。 */
+export function buildBrain(start: Date, sinks: BrainSinks = {}): Brain {
   const clock = new DemoClock(start);
   const store = new InMemoryStore();
   const world: World = { link: new Map(), merged: new Set() };
@@ -271,7 +280,8 @@ export function buildBrain(start: Date): Brain {
 
   const outbox: OutboundMessage[] = [];
   const send = async (out: OutboundMessage): Promise<{ dispatchRef: string }> => {
-    ui.butler(out.text);
+    if (sinks.onGroupSend !== undefined) sinks.onGroupSend(out);
+    else ui.butler(out.text);
     outbox.push(out);
     return { dispatchRef: `demo-${newId()}` };
   };
@@ -280,7 +290,9 @@ export function buildBrain(start: Date): Brain {
     const who = people.find((p) =>
       p.handles.some((h) => h.channel === out.channel && h.userRef === out.userRef),
     );
-    ui.dm(who?.displayName ?? out.userRef, out.text);
+    const name = who?.displayName ?? out.userRef;
+    if (sinks.onDirectSend !== undefined) sinks.onDirectSend(out, name);
+    else ui.dm(name, out.text);
     return { dispatchRef: `demo-dm-${newId()}` };
   };
 
